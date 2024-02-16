@@ -14,7 +14,6 @@ enum Problem {
     InvalidFile,
     IoError(&'static str, io::Error),
     NFDCancel,
-    NFDError(String),
     XMLDecodeError(rbx_xml::DecodeError),
 }
 
@@ -35,13 +34,7 @@ impl fmt::Display for Problem {
                 write!(formatter, "While attempting to {}, {}", doing_what, error)
             }
 
-            Problem::NFDCancel => write!(formatter, "Didn't choose a file."),
-
-            Problem::NFDError(error) => write!(
-                formatter,
-                "Something went wrong when choosing a file: {}",
-                error,
-            ),
+            Problem::NFDCancel => write!(formatter, "Didn't enter args correctly."),
 
             Problem::XMLDecodeError(error) => write!(
                 formatter,
@@ -96,13 +89,7 @@ fn routine() -> Result<(), Problem> {
     info!("Select a place file.");
     let file_path = PathBuf::from(match std::env::args().nth(1) {
         Some(text) => text,
-        None => match nfd::open_file_dialog(Some("rbxl,rbxm,rbxlx,rbxmx"), None)
-            .map_err(|error| Problem::NFDError(error.to_string()))?
-        {
-            nfd::Response::Okay(path) => path,
-            nfd::Response::Cancel => Err(Problem::NFDCancel)?,
-            _ => unreachable!(),
-        },
+        None => Err(Problem::NFDCancel)?,
     });
 
     info!("Opening place file");
@@ -128,13 +115,7 @@ fn routine() -> Result<(), Problem> {
     info!("Select the path to put your Rojo project in.");
     let root = PathBuf::from(match std::env::args().nth(2) {
         Some(text) => text,
-        None => match nfd::open_pick_folder(Some(&file_path.parent().unwrap().to_string_lossy()))
-            .map_err(|error| Problem::NFDError(error.to_string()))?
-        {
-            nfd::Response::Okay(path) => path,
-            nfd::Response::Cancel => Err(Problem::NFDCancel)?,
-            _ => unreachable!(),
-        },
+        None => Err(Problem::NFDCancel)?,
     });
 
     let mut filesystem = FileSystem::from_root(root.join(file_path.file_stem().unwrap()).into());
